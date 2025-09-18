@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI Periodic Table Explorer - Student Worksheet</title>
+  <style>
+    :root{
+      --brand:#4CAF50;
+      --brand-dark:#2e7d32;
+      --ink:#2d3748;
+      --paper:#ffffff;
+      --muted:#f8f9fa;
+      --shadow:0 10px 30px rgba(0,0,0,.2);
+      --ring:0 0 0 3px rgba(76,175,80,.25);
+    }
+
+    html,body{height:100%}
+    body{
+      font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin:0;
+      background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+      color:#333;
+      line-height:1.4;
+      padding:16px;
+    }
+    .container{
+      max-width:1000px;
+      margin:0 auto;
+      background:var(--paper);
+      border-radius:16px;
+      padding:24px;
+      box-shadow:var(--shadow);
+    }
+
+    .header{
+      text-align:center;
+      margin:-24px -24px 24px;
+      background:linear-gradient(135deg,var(--brand),#45a049);
+      color:#fff;
+      padding:24px 16px;
+      border-radius:16px 16px 0 0;
+    }
+    .header h1{
+      margin:0 0 6px;
+      font-size: clamp(1.6rem, 2.6vw, 2.2rem);
+      text-shadow:2px 2px 4px rgba(0,0,0,.3);
+    }
+    .header p{
+      margin:0;
+      opacity:.9;
+      font-size: clamp(0.95rem, 1.9vw, 1.1rem);
+    }
+
+    .student-info{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:16px;
+      margin-bottom:24px;
+      background:var(--muted);
+      padding:16px;
+      border-radius:10px;
+      border-left:6px solid var(--brand);
+    }
+    .student-info label{
+      display:block;
+      font-weight:700;
+      color:var(--ink);
+      margin-bottom:6px;
+    }
+    .student-info input, .student-info textarea{
+      width:100%;
+      padding:10px 12px;
+      border:2px solid #e2e8f0;
+      border-radius:8px;
+      font-size:1rem;
+      box-sizing:border-box;
+    }
+    .student-info input:focus,
+    .student-info textarea:focus{outline:none; border-color:var(--brand); box-shadow:var(--ring);}
+
+    .section{
+      background:var(--muted);
+      border-radius:16px;
+      padding:20px;
+      margin-bottom:20px;
+      border-left:6px solid var(--brand);
+    }
+    .section h2{
+      color:var(--ink);
+      font-size: clamp(1.25rem, 2.6vw, 1.6rem);
+      margin:0 0 14px;
+      padding-bottom:10px;
+      border-bottom:3px solid var(--brand);
+    }
+
+    .prompt-container{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+      gap:16px;
+      margin-top:12px;
+    }
+    .prompt-box{
+      background:linear-gradient(135deg,#e3f2fd,#bbdefb);
+      border:2px solid #2196f3;
+      padding:16px;
+      border-radius:10px;
+      position:relative;
+    }
+    .prompt-box h4{color:#1565c0; margin:0 0 8px; font-size:1.05rem;}
+    .prompt-text{
+      background:#fff;
+      padding:12px;
+      border-radius:8px;
+      font-family:'Courier New',monospace;
+      border-left:4px solid #2196f3;
+      font-size:.95rem;
+    }
+    .copy-btn{
+      position:absolute; top:8px; right:8px;
+      background:#2196f3; color:#fff; border:none;
+      padding:8px 12px; border-radius:6px; cursor:pointer; font-size:.85rem;
+      transition:.2s;
+    }
+    .copy-btn:hover{background:#1976d2; transform:translateY(-1px)}
+
+    .ptable-container{
+      background:#fff; padding:16px; border-radius:16px; margin-top:10px;
+      box-shadow:0 4px 6px rgba(0,0,0,.1);
+      overflow-x:auto;
+    }
+
+    .controls{
+      display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:10px 0 16px;
+    }
+    .control-btn{
+      padding:10px 16px; border:none; border-radius:8px; cursor:pointer; font-weight:700; font-size:1rem; transition:.25s;
+    }
+    .clear-btn{background:#ff6b6b; color:#fff}
+    .clear-btn:hover{background:#ff5252; transform:translateY(-2px)}
+    .print-btn{background:#38a169; color:#fff}
+    .print-btn:hover{background:#2f855a; transform:translateY(-2px)}
+
+    .ptable{
+      width:100%;
+      border-collapse:collapse;
+      table-layout:fixed;
+      margin:0 auto;
+      font-size: clamp(.75rem, 1.6vw, .9rem);
+    }
+    .ptable td{
+      height: clamp(50px, 6vw, 70px);
+      border:1px solid #666;
+      position:relative;
+      vertical-align:top;
+      background:#fafafa;
+      cursor:pointer;
+      overflow:hidden;
+      text-align:center;
+    }
+    .ptable td:hover{
+      background:#e8f5e8;
+      box-shadow: inset 0 0 0 2px rgba(76,175,80,.35);
+    }
+    .ptable td.blank{border:none; background:transparent; cursor:default;}
+    .ptable td.blank:hover{background:transparent; box-shadow:none}
+    .ptable td.studied{background:var(--brand) !important; color:#fff}
+    .ptable td.studied .atomic-number,
+    .ptable td.studied .symbol{color:#fff}
+
+    .atomic-number{ font-size:.65em; position:absolute; top:3px; left:3px; color:#444; }
+    .symbol{
+      display:block; text-align:center; margin-top:20px; font-weight:700; color:var(--ink);
+      font-size: clamp(0.9rem, 2.4vw, 1.1rem); line-height:1; user-select:none;
+    }
+
+    .ptable-caption{text-align:center; margin-top:12px; font-style:italic; color:#666}
+
+    .facts-section{background:#fff; padding:16px; border-radius:10px; margin-top:10px}
+    .facts-section h3{color:var(--ink); margin:0 0 10px}
+    .fact-input{display:flex; align-items:center; gap:12px; margin-bottom:10px;}
+    .fact-number{
+      background:var(--brand); color:#fff; width:30px; height:30px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0;
+    }
+    .fact-input input{
+      flex:1; padding:10px 12px; border:2px solid #e2e8f0; border-radius:8px; font-size:1rem;
+      box-sizing:border-box;
+    }
+    .fact-input input:focus{outline:none; border-color:var(--brand); box-shadow:var(--ring)}
+
+    /* --- PAGE WRAPPERS (force exactly 3 printed pages) --- */
+    .page{ /* screen spacing only */ }
+    .page + .page{ margin-top:16px; }
+
+    /* ===== PRINT (A4 portrait) ===== */
+    @page{ size: A4 portrait; margin: 12mm; }
+
+    @media print{
+      *{
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+
+      html, body{ height:auto !important; }
+      body{
+        background:#fff !important;
+        padding:0 !important;
+        margin:0 !important;
+        font-size: 10.5pt !important;
+        line-height: 1.28 !important;
+        color:#000 !important;
+      }
+      .container{
+        box-shadow:none !important;
+        padding:8pt !important;
+        margin:0 !important;
+        border-radius:0 !important;
+        max-width:none !important;
+        width:100% !important;
+      }
+      .controls, .copy-btn, .no-print{ display:none !important; }
+
+      /* Force each wrapper to be exactly one printed page */
+      .page{
+        break-after: page;
+        page-break-after: always;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+      .page:last-of-type{
+        break-after: auto;
+        page-break-after: auto;
+      }
+
+      /* Keep header + student box with page 1 */
+      .header, .student-info, .section{ break-inside: avoid; page-break-inside: avoid; }
+
+      /* Compress page 1 so it fully fits */
+      .prompt-container{ grid-template-columns: repeat(3, 1fr) !important; gap: 8pt !important; }
+      .prompt-box{ padding:8pt !important; border:1pt solid #2196f3 !important; border-radius:4pt !important; }
+      .prompt-box h4{ font-size:10pt !important; margin-bottom:4pt !important; }
+      .prompt-text{ font-size:8.5pt !important; padding:6pt !important; border-left:3pt solid #2196f3 !important; }
+
+      /* Page 2: make the entire table fit comfortably */
+      .ptable-container{ padding:6pt !important; border-radius:0 !important; box-shadow:none !important; }
+      .ptable{ width:100% !important; font-size:6pt !important; border-collapse:collapse !important; margin:0 auto !important; }
+      .ptable td{ height:16pt !important; border:0.5pt solid #666 !important; background:#fff !important; padding:0.5pt !important; vertical-align:top !important; }
+      .atomic-number{ font-size:5pt !important; top:1pt !important; left:1pt !important; }
+      .symbol{ font-size:7pt !important; margin-top:7pt !important; font-weight:bold !important; }
+      .ptable-caption{ font-size:7pt !important; margin-top:6pt !important; }
+
+      /* Page 3: keep within one page */
+      .facts-section{ padding:8pt !important; }
+      .facts-section h3{ font-size:12pt !important; margin-bottom:6pt !important; }
+      .fact-input{ margin-bottom:6pt !important; gap:6pt !important; }
+      .fact-number{ width:20pt !important; height:20pt !important; font-size:9pt !important; }
+      .fact-input input{ padding:5pt !important; font-size:9.5pt !important; }
+      textarea{
+        border:1pt solid #ccc !important; padding:6pt !important; font-size:9.5pt !important;
+        width:100% !important; box-sizing:border-box !important; border-radius:2pt !important;
+        line-height:1.25 !important;
+      }
+
+      /* Hide the print button on paper */
+      .print-wrap{ display:none !important; }
+    }
+
+    @media (max-width:768px){
+      .container{padding:16px}
+      .prompt-container{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- PAGE 1 -->
+    <section class="page page-1">
+      <div class="header">
+        <h1>AI Periodic Table Explorer</h1>
+        <p>Discover Elements Using Artificial Intelligence</p>
+      </div>
+
+      <div class="student-info">
+        <div>
+          <label>Student Name:</label>
+          <input type="text" />
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>How to Use This Worksheet</h2>
+        <p>Pick any element from the periodic table below. Copy one of these prompts, paste it into an AI chatbot, and replace <em>[element symbol]</em> with your chosen element symbol like H, Fe, or Au. After learning, mark the element as studied by clicking it. When printing, the boxes below the prompts will be blank for you to fill in your own notes.</p>
+
+        <div class="prompt-container">
+          <div class="prompt-box">
+            <button class="copy-btn" onclick="copyPrompt(1,this)">Copy</button>
+            <h4>🔬 Meet the Element</h4>
+            <div class="prompt-text" id="prompt1">
+I'm a 7th grade student learning about elements. Please explain [element symbol] using simple words (6th-7th grade level). First, give me a quick 1-sentence answer about what this element is. Then explain the most important thing I should know about it. Next, compare it to something I see every day to help me understand. After that, suggest one simple way I could learn more about it. Finally, ask me a question to check if I understood.
+            </div>
+          </div>
+          <div class="prompt-box">
+            <button class="copy-btn" onclick="copyPrompt(2,this)">Copy</button>
+            <h4>📜 Discovery Detective</h4>
+            <div class="prompt-text" id="prompt2">
+I'm a 7th grader studying element discoveries. Tell me about [element symbol] using simple language (6th-7th grade reading level). Start with a quick sentence about who found it and when. Then share the most interesting fact about how it was discovered. Compare the discovery to finding something surprising (like an analogy). Give me one way I could research more about this discovery. End by asking me a question to see if I learned something new.
+            </div>
+          </div>
+          <div class="prompt-box">
+            <button class="copy-btn" onclick="copyPrompt(3,this)">Copy</button>
+            <h4>🏠 Real Life Hunter</h4>
+            <div class="prompt-text" id="prompt3">
+I'm in 7th grade and want to find [element symbol] in my daily life. Use simple words (6th-7th grade level). Start by quickly naming one common place I'd find this element. Then explain why it's useful in that item. Compare how this element works to something I already understand. Suggest one thing I could look for at home or school that contains this element. Finish with a question to test if I can spot this element around me.
+            </div>
+          </div>
+          <div class="prompt-box">
+            <button class="copy-btn" onclick="copyPrompt(4,this)">Copy</button>
+            <h4>🎭 Element Superhero</h4>
+            <div class="prompt-text" id="prompt4">
+I'm a 7th grade student creating element superheroes. Help me understand [element symbol] using simple words (6th-7th grade reading level). Start with one sentence about what superpower this element would have based on its real properties. Then explain the most important real ability that gives it this power. Compare this element's "personality" to a character I might know. Give me one creative way to remember this element's special ability. End with a question to see if I can explain why this element would be a good superhero.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 2 -->
+    <section class="page page-2">
+      <div class="section">
+        <h2>Periodic Table - All 118 Elements</h2>
+        <p><strong>Instructions:</strong> Click on any element to mark it as studied (it will turn green). Click again to unmark. Use the prompts above to guide your research.</p>
+
+        <div class="ptable-container">
+          <div class="controls no-print">
+            <button class="control-btn clear-btn" onclick="clearAll()">🗑️ Clear All</button>
+          </div>
+
+          <!-- PERIODIC TABLE -->
+          <table class="ptable" aria-label="Periodic table">
+            <tr>
+              <td data-element="1"><span class="atomic-number">1</span><span class="symbol">H</span></td>
+              <td class="blank"></td><td class="blank"></td><td class="blank"></td><td class="blank"></td><td class="blank"></td>
+              <td class="blank"></td><td class="blank"></td><td class="blank"></td><td class="blank"></td><td class="blank"></td>
+              <td class="blank"></td><td class="blank"></td><td class="blank"></td><td class="blank"></td><td class="blank"></td>
+              <td class="blank"></td>
+              <td data-element="2"><span class="atomic-number">2</span><span class="symbol">He</span></td>
+            </tr>
+            <tr>
+              <td data-element="3"><span class="atomic-number">3</span><span class="symbol">Li</span></td>
+              <td data-element="4"><span class="atomic-number">4</span><span class="symbol">Be</span></td>
+              <td class="blank"></td><td class="blank"></td><td class="blank"></td><td class="blank"></td>
+              <td class="blank"></td><td class="blank"></td><td class="blank"></td><td class="blank"></td><td class="blank"></td>
+              <td class="blank"></td>
+              <td data-element="5"><span class="atomic-number">5</span><span class="symbol">B</span></td>
+              <td data-element="6"><span class="atomic-number">6</span><span class="symbol">C</span></td>
+              <td data-element="7"><span class="atomic-number">7</span><span class="symbol">N</span></td>
+              <td data-element="8"><span class="atomic-number">8</span><span class="symbol">O</span></td>
+              <td data-element="9"><span class="atomic-number">9</span><span class="symbol">F</span></td>
+              <td data-element="10"><span class="atomic-number">10</span><span class="symbol">Ne</span></td>
+            </tr>
+            <tr>
+              <td data-element="11"><span class="atomic-number">11</span><span class="symbol">Na</span></td>
+              <td data-element="12"><span class="atomic-number">12</span><span class="symbol">Mg</span></td>
+              <td class="blank"></td><td class="blank"></td><td class="blank"></td><td class="blank"></td>
+              <td class="blank"></td><td class="blank"></td><td class="blank"></td><td class="blank"></td><td class="blank"></td>
+              <td class="blank"></td>
+              <td data-element="13"><span class="atomic-number">13</span><span class="symbol">Al</span></td>
+              <td data-element="14"><span class="atomic-number">14</span><span class="symbol">Si</span></td>
+              <td data-element="15"><span class="atomic-number">15</span><span class="symbol">P</span></td>
+              <td data-element="16"><span class="atomic-number">16</span><span class="symbol">S</span></td>
+              <td data-element="17"><span class="atomic-number">17</span><span class="symbol">Cl</span></td>
+              <td data-element="18"><span class="atomic-number">18</span><span class="symbol">Ar</span></td>
+            </tr>
+            <tr>
+              <td data-element="19"><span class="atomic-number">19</span><span class="symbol">K</span></td>
+              <td data-element="20"><span class="atomic-number">20</span><span class="symbol">Ca</span></td>
+              <td data-element="21"><span class="atomic-number">21</span><span class="symbol">Sc</span></td>
+              <td data-element="22"><span class="atomic-number">22</span><span class="symbol">Ti</span></td>
+              <td data-element="23"><span class="atomic-number">23</span><span class="symbol">V</span></td>
+              <td data-element="24"><span class="atomic-number">24</span><span class="symbol">Cr</span></td>
+              <td data-element="25"><span class="atomic-number">25</span><span class="symbol">Mn</span></td>
+              <td data-element="26"><span class="atomic-number">26</span><span class="symbol">Fe</span></td>
+              <td data-element="27"><span class="atomic-number">27</span><span class="symbol">Co</span></td>
+              <td data-element="28"><span class="atomic-number">28</span><span class="symbol">Ni</span></td>
+              <td data-element="29"><span class="atomic-number">29</span><span class="symbol">Cu</span></td>
+              <td data-element="30"><span class="atomic-number">30</span><span class="symbol">Zn</span></td>
+              <td data-element="31"><span class="atomic-number">31</span><span class="symbol">Ga</span></td>
+              <td data-element="32"><span class="atomic-number">32</span><span class="symbol">Ge</span></td>
+              <td data-element="33"><span class="atomic-number">33</span><span class="symbol">As</span></td>
+              <td data-element="34"><span class="atomic-number">34</span><span class="symbol">Se</span></td>
+              <td data-element="35"><span class="atomic-number">35</span><span class="symbol">Br</span></td>
+              <td data-element="36"><span class="atomic-number">36</span><span class="symbol">Kr</span></td>
+            </tr>
+            <tr>
+              <td data-element="37"><span class="atomic-number">37</span><span class="symbol">Rb</span></td>
+              <td data-element="38"><span class="atomic-number">38</span><span class="symbol">Sr</span></td>
+              <td data-element="39"><span class="atomic-number">39</span><span class="symbol">Y</span></td>
+              <td data-element="40"><span class="atomic-number">40</span><span class="symbol">Zr</span></td>
+              <td data-element="41"><span class="atomic-number">41</span><span class="symbol">Nb</span></td>
+              <td data-element="42"><span class="atomic-number">42</span><span class="symbol">Mo</span></td>
+              <td data-element="43"><span class="atomic-number">43</span><span class="symbol">Tc</span></td>
+              <td data-element="44"><span class="atomic-number">44</span><span class="symbol">Ru</span></td>
+              <td data-element="45"><span class="atomic-number">45</span><span class="symbol">Rh</span></td>
+              <td data-element="46"><span class="atomic-number">46</span><span class="symbol">Pd</span></td>
+              <td data-element="47"><span class="atomic-number">47</span><span class="symbol">Ag</span></td>
+              <td data-element="48"><span class="atomic-number">48</span><span class="symbol">Cd</span></td>
+              <td data-element="49"><span class="atomic-number">49</span><span class="symbol">In</span></td>
+              <td data-element="50"><span class="atomic-number">50</span><span class="symbol">Sn</span></td>
+              <td data-element="51"><span class="atomic-number">51</span><span class="symbol">Sb</span></td>
+              <td data-element="52"><span class="atomic-number">52</span><span class="symbol">Te</span></td>
+              <td data-element="53"><span class="atomic-number">53</span><span class="symbol">I</span></td>
+              <td data-element="54"><span class="atomic-number">54</span><span class="symbol">Xe</span></td>
+            </tr>
+            <tr>
+              <td data-element="55"><span class="atomic-number">55</span><span class="symbol">Cs</span></td>
+              <td data-element="56"><span class="atomic-number">56</span><span class="symbol">Ba</span></td>
+              <td data-element="57"><span class="atomic-number">57</span><span class="symbol">La</span></td>
+              <td data-element="72"><span class="atomic-number">72</span><span class="symbol">Hf</span></td>
+              <td data-element="73"><span class="atomic-number">73</span><span class="symbol">Ta</span></td>
+              <td data-element="74"><span class="atomic-number">74</span><span class="symbol">W</span></td>
+              <td data-element="75"><span class="atomic-number">75</span><span class="symbol">Re</span></td>
+              <td data-element="76"><span class="atomic-number">76</span><span class="symbol">Os</span></td>
+              <td data-element="77"><span class="atomic-number">77</span><span class="symbol">Ir</span></td>
+              <td data-element="78"><span class="atomic-number">78</span><span class="symbol">Pt</span></td>
+              <td data-element="79"><span class="atomic-number">79</span><span class="symbol">Au</span></td>
+              <td data-element="80"><span class="atomic-number">80</span><span class="symbol">Hg</span></td>
+              <td data-element="81"><span class="atomic-number">81</span><span class="symbol">Tl</span></td>
+              <td data-element="82"><span class="atomic-number">82</span><span class="symbol">Pb</span></td>
+              <td data-element="83"><span class="atomic-number">83</span><span class="symbol">Bi</span></td>
+              <td data-element="84"><span class="atomic-number">84</span><span class="symbol">Po</span></td>
+              <td data-element="85"><span class="atomic-number">85</span><span class="symbol">At</span></td>
+              <td data-element="86"><span class="atomic-number">86</span><span class="symbol">Rn</span></td>
+            </tr>
+            <tr>
+              <td data-element="87"><span class="atomic-number">87</span><span class="symbol">Fr</span></td>
+              <td data-element="88"><span class="atomic-number">88</span><span class="symbol">Ra</span></td>
+              <td data-element="89"><span class="atomic-number">89</span><span class="symbol">Ac</span></td>
+              <td data-element="104"><span class="atomic-number">104</span><span class="symbol">Rf</span></td>
+              <td data-element="105"><span class="atomic-number">105</span><span class="symbol">Db</span></td>
+              <td data-element="106"><span class="atomic-number">106</span><span class="symbol">Sg</span></td>
+              <td data-element="107"><span class="atomic-number">107</span><span class="symbol">Bh</span></td>
+              <td data-element="108"><span class="atomic-number">108</span><span class="symbol">Hs</span></td>
+              <td data-element="109"><span class="atomic-number">109</span><span class="symbol">Mt</span></td>
+              <td data-element="110"><span class="atomic-number">110</span><span class="symbol">Ds</span></td>
+              <td data-element="111"><span class="atomic-number">111</span><span class="symbol">Rg</span></td>
+              <td data-element="112"><span class="atomic-number">112</span><span class="symbol">Cn</span></td>
+              <td data-element="113"><span class="atomic-number">113</span><span class="symbol">Nh</span></td>
+              <td data-element="114"><span class="atomic-number">114</span><span class="symbol">Fl</span></td>
+              <td data-element="115"><span class="atomic-number">115</span><span class="symbol">Mc</span></td>
+              <td data-element="116"><span class="atomic-number">116</span><span class="symbol">Lv</span></td>
+              <td data-element="117"><span class="atomic-number">117</span><span class="symbol">Ts</span></td>
+              <td data-element="118"><span class="atomic-number">118</span><span class="symbol">Og</span></td>
+            </tr>
+            <tr>
+              <td class="blank"></td><td class="blank"></td>
+              <td data-element="58"><span class="atomic-number">58</span><span class="symbol">Ce</span></td>
+              <td data-element="59"><span class="atomic-number">59</span><span class="symbol">Pr</span></td>
+              <td data-element="60"><span class="atomic-number">60</span><span class="symbol">Nd</span></td>
+              <td data-element="61"><span class="atomic-number">61</span><span class="symbol">Pm</span></td>
+              <td data-element="62"><span class="atomic-number">62</span><span class="symbol">Sm</span></td>
+              <td data-element="63"><span class="atomic-number">63</span><span class="symbol">Eu</span></td>
+              <td data-element="64"><span class="atomic-number">64</span><span class="symbol">Gd</span></td>
+              <td data-element="65"><span class="atomic-number">65</span><span class="symbol">Tb</span></td>
+              <td data-element="66"><span class="atomic-number">66</span><span class="symbol">Dy</span></td>
+              <td data-element="67"><span class="atomic-number">67</span><span class="symbol">Ho</span></td>
+              <td data-element="68"><span class="atomic-number">68</span><span class="symbol">Er</span></td>
+              <td data-element="69"><span class="atomic-number">69</span><span class="symbol">Tm</span></td>
+              <td data-element="70"><span class="atomic-number">70</span><span class="symbol">Yb</span></td>
+              <td data-element="71"><span class="atomic-number">71</span><span class="symbol">Lu</span></td>
+              <td class="blank"></td><td class="blank"></td>
+            </tr>
+            <tr>
+              <td class="blank"></td><td class="blank"></td>
+              <td data-element="90"><span class="atomic-number">90</span><span class="symbol">Th</span></td>
+              <td data-element="91"><span class="atomic-number">91</span><span class="symbol">Pa</span></td>
+              <td data-element="92"><span class="atomic-number">92</span><span class="symbol">U</span></td>
+              <td data-element="93"><span class="atomic-number">93</span><span class="symbol">Np</span></td>
+              <td data-element="94"><span class="atomic-number">94</span><span class="symbol">Pu</span></td>
+              <td data-element="95"><span class="atomic-number">95</span><span class="symbol">Am</span></td>
+              <td data-element="96"><span class="atomic-number">96</span><span class="symbol">Cm</span></td>
+              <td data-element="97"><span class="atomic-number">97</span><span class="symbol">Bk</span></td>
+              <td data-element="98"><span class="atomic-number">98</span><span class="symbol">Cf</span></td>
+              <td data-element="99"><span class="atomic-number">99</span><span class="symbol">Es</span></td>
+              <td data-element="100"><span class="atomic-number">100</span><span class="symbol">Fm</span></td>
+              <td data-element="101"><span class="atomic-number">101</span><span class="symbol">Md</span></td>
+              <td data-element="102"><span class="atomic-number">102</span><span class="symbol">No</span></td>
+              <td data-element="103"><span class="atomic-number">103</span><span class="symbol">Lr</span></td>
+              <td class="blank"></td><td class="blank"></td>
+            </tr>
+          </table>
+          <p class="ptable-caption">Lanthanides and actinides are shown in the last two rows.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 3 -->
+    <section class="page page-3">
+      <div class="section">
+        <h2>Your Element Discoveries</h2>
+        <div class="facts-section">
+          <h3>Interesting Facts from AI</h3>
+          <div class="fact-input"><div class="fact-number">1</div><input type="text"></div>
+          <div class="fact-input"><div class="fact-number">2</div><input type="text"></div>
+          <div class="fact-input"><div class="fact-number">3</div><input type="text"></div>
+          <div class="fact-input"><div class="fact-number">4</div><input type="text"></div>
+          <div class="fact-input"><div class="fact-number">5</div><input type="text"></div>
+
+          <h3>Reflection Questions</h3>
+          <p><strong>Which element surprised you most and why?</strong></p>
+          <textarea style="width:100%;height:80px;padding:12px;border:2px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:1rem;resize:vertical"></textarea>
+
+          <p style="margin-top:12px;"><strong>How did AI help you learn about chemistry?</strong></p>
+          <textarea style="width:100%;height:60px;padding:12px;border:2px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:1rem;resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin:24px 0;padding:20px;background:linear-gradient(135deg,var(--brand),#45a049);color:#fff;border-radius:12px;">
+        <h3 style="margin:0 0 6px">Congratulations! You're exploring chemistry with AI!</h3>
+        <p style="margin:0">Keep discovering the amazing world of elements!</p>
+      </div>
+
+      <div class="print-wrap" style="text-align:center;margin:16px 0;">
+        <button class="control-btn print-btn" onclick="window.print()" style="background:#38a169;color:#fff;padding:12px 20px;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:1rem;">🖨️ Print Worksheet</button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const studiedElements = new Set();
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('td[data-element]').forEach(td => {
+        td.addEventListener('click', () => {
+          const n = parseInt(td.dataset.element,10);
+          toggleStudied(n, td);
+        });
+      });
+    });
+
+    function toggleStudied(n, cell){
+      if (studiedElements.has(n)){
+        studiedElements.delete(n);
+        cell.classList.remove('studied');
+      }else{
+        studiedElements.add(n);
+        cell.classList.add('studied');
+      }
+    }
+
+    function clearAll(){
+      studiedElements.clear();
+      document.querySelectorAll('.studied').forEach(td => td.classList.remove('studied'));
+    }
+
+    function copyPrompt(n, btnEl){
+      const text = document.getElementById(`prompt${n}`).textContent.trim();
+      const onDone = () => {
+        const original = btnEl.textContent;
+        btnEl.textContent = 'Copied!';
+        btnEl.style.background = 'var(--brand)';
+        setTimeout(() => {
+          btnEl.textContent = original;
+          btnEl.style.background = '#2196f3';
+        }, 1200);
+      };
+
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(onDone);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta);
+        onDone();
+      }
+    }
+  </script>
+</body>
+</html>
