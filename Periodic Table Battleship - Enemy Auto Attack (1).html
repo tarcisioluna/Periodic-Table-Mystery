@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚔️ Periodic Table Battleship — Canvas Edition</title>
+    <style>
+        /*
+          ==============================================================
+          Global and layout styles. These match the improved version but
+          remove any dependencies on external libraries. The canvas will
+          be drawn via vanilla JavaScript.
+        */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: #667eea;
+            color: #2c3e50;
+            font-size: 16px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            overflow-x: hidden;
+        }
+        .game-wrapper {
+            max-width: 1400px;
+            width: 100%;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        .top-section {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .game-title {
+            color: #fff;
+            font-size: 2.5em;
+            font-weight: 800;
+            margin: 0 0 15px;
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+        }
+        .instructions-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 1.1em;
+            font-weight: 600;
+            max-width: 800px;
+            margin: 0 auto;
+            color: #2c3e50;
+        }
+        .game-area-flex {
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 40px;
+        }
+        .board-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        /* Canvas will fill this container; style applied from JS */
+        .controls-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+        }
+        button {
+            border: none;
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #fff;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .start-button { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+        .reset-button { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .clear-button { background: linear-gradient(135deg, #f39c12, #e67e22); }
+        .attack-input-container {
+            display: none;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            padding: 10px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            align-items: center;
+            gap: 10px;
+        }
+        .attack-input-container label {
+            font-weight: 700;
+            color: #2c3e50;
+            font-size: 1em;
+        }
+        .attack-input-container input {
+            font-size: 1em;
+            padding: 8px 12px;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            width: 120px;
+            text-align: center;
+            font-weight: 600;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .attack-input-container input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        .side-panel {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+            min-width: 200px;
+            max-width: 250px;
+            width: 100%;
+        }
+        .side-panel h3 {
+            margin-top: 0;
+            font-size: 1.3em;
+            color: #2c3e50;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .key-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 0.95em;
+            font-weight: 500;
+        }
+        .key-square {
+            width: 28px;
+            height: 28px;
+            margin-right: 10px;
+            border-radius: 6px;
+            border: 2px solid #34495e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 0.8em;
+        }
+        .key-hit { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .key-miss { background: linear-gradient(135deg, #3498db, #2980b9); }
+        .key-ship { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+        .key-unavailable { background: linear-gradient(135deg, #95a5a6, #7f8c8d); }
+        .ship-status {
+            margin: 6px 0;
+            padding: 6px 10px;
+            background: #ecf0f1;
+            border-radius: 8px;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+        .ship-placed {
+            background: linear-gradient(135deg, #d5f4e6, #a8e6cf);
+            color: #27ae60;
+        }
+        .score-display {
+            margin-top: 15px;
+            padding-top: 12px;
+            border-top: 1px solid #bdc3c7;
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .credits {
+            margin-top: 20px;
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(10px);
+            padding: 10px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            font-size: 0.8em;
+            color: #2c3e50;
+            text-align: center;
+        }
+        .credits strong { font-size: 1.1em; color: #34495e; }
+        @media (max-width: 1024px) {
+            .game-area-flex { flex-direction: column; align-items: center; }
+            .side-panel { max-width: 90%; margin-top: 20px; }
+        }
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .game-title { font-size: 2em; }
+            .instructions-panel { font-size: 1em; padding: 10px 15px; }
+            .controls-panel { gap: 10px; }
+            .button-group { flex-direction: column; gap: 10px; }
+            button { width: 100%; padding: 10px 20px; }
+            .attack-input-container { flex-direction: column; gap: 5px; padding: 8px 15px; }
+            .attack-input-container input { width: 80%; }
+            .side-panel { padding: 15px; }
+            .key-item, .ship-status, .score-display { font-size: 0.85em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-wrapper">
+        <div class="top-section">
+            <h1 class="game-title">⚔️ Periodic Table Battleship</h1>
+            <div class="instructions-panel" id="main-instructions">
+                🚢 Place your 3 ships: one 2-cell destroyer and two 3-cell cruisers (ships must be contiguous!)
+            </div>
+        </div>
+        <div class="game-area-flex">
+            <!-- Legend Panel -->
+            <div class="side-panel key-panel">
+                <h3>🗝️ LEGEND</h3>
+                <div class="key-item"><div class="key-square key-hit">×</div><span>Hit</span></div>
+                <div class="key-item"><div class="key-square key-miss">○</div><span>Miss</span></div>
+                <div class="key-item"><div class="key-square key-ship">■</div><span>Your Ship</span></div>
+                <div class="key-item"><div class="key-square key-unavailable"></div><span>Unavailable</span></div>
+            </div>
+            <!-- Canvas and Controls -->
+            <div class="board-container">
+                <div id="game-area"></div>
+                <div class="controls-panel">
+                    <div class="button-group">
+                        <button class="start-button" id="start-button">⚔️ Start Battle!</button>
+                        <button class="clear-button" id="clear-button">❌ Clear Ship</button>
+                        <button class="reset-button" id="reset-button">🔄 Reset Game</button>
+                    </div>
+                    <div class="attack-input-container" id="attack-input-container">
+                        <label for="attack-input">🎯 Attack Coordinates:</label>
+                        <input type="text" id="attack-input" placeholder="G# P#" maxlength="6">
+                    </div>
+                </div>
+            </div>
+            <!-- Status Panel -->
+            <div class="side-panel status-panel">
+                <h3>🚢 FLEET STATUS</h3>
+                <div class="ship-status" id="destroyer-status">Destroyer (2): ⏳ Placing</div>
+                <div class="ship-status" id="cruiser1-status">Cruiser (3): ⏳ Waiting</div>
+                <div class="ship-status" id="cruiser2-status">Cruiser (3): ⏳ Waiting</div>
+                <div class="score-display">
+                    <div>🎯 Your Hits: <span id="player-hits">0</span></div>
+                    <div>💥 Enemy Hits: <span id="enemy-hits">0</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="credits">Proudly made by <strong>Tarcisio</strong></div>
+    </div>
+    <script>
+    // ===================================================================
+    // Configuration constants
+    const cols = 8;
+    const rows = 7;
+    const cellSize = 65;
+    const labelSpace = 60;
+    const boardGap = 50;
+    const boardTopOffset = 80;
+    // Periodic table mapping (simplified). Empty strings represent unavailable cells.
+    const symbols = [
+        ['H','',  '',  '',  '',  '',  '',  'He'],
+        ['Li','Be','B','C','N','O','F','Ne'],
+        ['Na','Mg','Al','Si','P','S','Cl','Ar'],
+        ['K','Ca','Ga','Ge','As','Se','Br','Kr'],
+        ['Rb','Sr','In','Sn','Sb','Te','I','Xe'],
+        ['Cs','Ba','Tl','Pb','Bi','Po','At','Rn'],
+        ['Fr','Ra','Nh','Fl','Mc','Lv','Ts','Og']
+    ];
+    const groupToColMap = {1:0,2:1,3:2,4:3,5:4,6:5,7:6,8:7};
+    const colToGroupMap = {0:1,1:2,2:3,3:4,4:5,5:6,6:7,7:8};
+    const playerShipsConfig = [
+        { size: 2, name: 'Destroyer', id: 'destroyer' },
+        { size: 3, name: 'Cruiser', id: 'cruiser1' },
+        { size: 3, name: 'Cruiser', id: 'cruiser2' }
+    ];
+    const aiShipsConfig = [
+        { size: 2, id: 'ai-destroyer' },
+        { size: 3, id: 'ai-cruiser1' },
+        { size: 3, id: 'ai-cruiser2' }
+    ];
+    // Game state variables
+    let playerBoard = [];
+    let enemyBoard = [];
+    let currentShipIndex = 0;
+    let currentShipCells = [];
+    let gamePhase = 'placing';
+    let playerHits = 0;
+    let enemyHits = 0;
+    let waitingForAI = false;
+    let aiState = 'hunting';
+    let aiHitQueue = [];
+    // Canvas and context
+    let canvas, ctx;
+    // DOM elements
+    let inputBox, startButton, resetButton, clearButton;
+    // Initialise game once DOM has loaded
+    window.addEventListener('load', () => {
+        initBoards();
+        setupUI();
+        createCanvas();
+        requestAnimationFrame(drawGame);
+    });
+    // Initialise empty boards and randomly place AI ships
+    function initBoards() {
+        playerBoard = [];
+        enemyBoard = [];
+        for (let y = 0; y < rows; y++) {
+            playerBoard[y] = [];
+            enemyBoard[y] = [];
+            for (let x = 0; x < cols; x++) {
+                playerBoard[y][x] = { hasShip: false, hit: false, shipId: null };
+                enemyBoard[y][x] = { hasShip: false, hit: false, shipId: null };
+            }
+        }
+        placeShipsRandomly(enemyBoard, aiShipsConfig);
+    }
+    // Place ships randomly on the board
+    function placeShipsRandomly(board, config) {
+        config.forEach(ship => {
+            let placed = false;
+            let attempts = 0;
+            while (!placed && attempts < 200) {
+                const x = Math.floor(Math.random() * cols);
+                const y = Math.floor(Math.random() * rows);
+                const horizontal = Math.random() > 0.5;
+                if (canPlaceShip(board, x, y, ship.size, horizontal)) {
+                    for (let i = 0; i < ship.size; i++) {
+                        const px = horizontal ? x + i : x;
+                        const py = horizontal ? y : y + i;
+                        board[py][px].hasShip = true;
+                        board[py][px].shipId = ship.id;
+                    }
+                    placed = true;
+                }
+                attempts++;
+            }
+        });
+    }
+    // Check if a ship can be placed
+    function canPlaceShip(board, x, y, size, horizontal) {
+        if (horizontal && x + size > cols) return false;
+        if (!horizontal && y + size > rows) return false;
+        for (let i = 0; i < size; i++) {
+            const px = horizontal ? x + i : x;
+            const py = horizontal ? y : y + i;
+            if (!symbols[py][px] || board[py][px].hasShip) return false;
+        }
+        return true;
+    }
+    // Create and insert canvas into DOM
+    function createCanvas() {
+        const width = labelSpace + cols * cellSize + boardGap + cols * cellSize + labelSpace;
+        const height = boardTopOffset + rows * cellSize + 20;
+        canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        ctx = canvas.getContext('2d');
+        document.getElementById('game-area').appendChild(canvas);
+        // Handle mouse clicks on canvas
+        canvas.addEventListener('click', onCanvasClick);
+    }
+    // Set up UI controls and event handlers
+    function setupUI() {
+        inputBox = document.getElementById('attack-input');
+        startButton = document.getElementById('start-button');
+        resetButton = document.getElementById('reset-button');
+        clearButton = document.getElementById('clear-button');
+        inputBox.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                processPlayerAttackFromInput();
+            }
+        });
+        startButton.addEventListener('click', startGame);
+        resetButton.addEventListener('click', resetGame);
+        clearButton.addEventListener('click', clearCurrentShip);
+    }
+    // Canvas drawing loop
+    function drawGame() {
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Background fill
+        ctx.fillStyle = '#667eea';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Optional subtle particles
+        for (let i = 0; i < 30; i++) {
+            const x = Math.random() * canvas.width;
+            const y = Math.random() * canvas.height;
+            ctx.fillStyle = 'rgba(255,255,255,0.15)';
+            ctx.beginPath();
+            ctx.arc(x, y, 3, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+        // Compute board positions
+        const leftX = labelSpace;
+        const rightX = labelSpace + cols * cellSize + boardGap;
+        // Draw boards
+        drawBoard(ctx, leftX, boardTopOffset, playerBoard, true, '🛡️ Your Fleet');
+        drawBoard(ctx, rightX, boardTopOffset, enemyBoard, false, '⚔️ Enemy Waters');
+        // Draw labels
+        drawGroupLabels(ctx, leftX, boardTopOffset);
+        drawGroupLabels(ctx, rightX, boardTopOffset);
+        drawPeriodLabels(ctx, 0, boardTopOffset);
+        drawPeriodLabels(ctx, labelSpace + cols * cellSize + boardGap + cols * cellSize, boardTopOffset);
+        requestAnimationFrame(drawGame);
+    }
+    // Draw a single board on the canvas
+    function drawBoard(ctx, offsetX, offsetY, board, showShips, title) {
+        // Title
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 22px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(title, offsetX + cols * cellSize / 2, offsetY - 40);
+        // Draw cells
+        for (let y = 0; y < rows; y++) {
+            for (let x = 0; x < cols; x++) {
+                const cell = board[y][x];
+                const sx = offsetX + x * cellSize;
+                const sy = offsetY + y * cellSize;
+                // Determine fill colour
+                if (cell.hit && cell.hasShip) {
+                    ctx.fillStyle = '#e74c3c';
+                } else if (cell.hit) {
+                    ctx.fillStyle = '#3498db';
+                } else if (showShips && cell.hasShip) {
+                    ctx.fillStyle = '#27ae60';
+                } else if (!symbols[y][x]) {
+                    ctx.fillStyle = '#95a5a6';
+                } else {
+                    ctx.fillStyle = '#ecf0f1';
+                }
+                ctx.strokeStyle = '#34495e';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.rect(sx, sy, cellSize, cellSize);
+                ctx.fill();
+                ctx.stroke();
+                // Draw element symbol
+                if (symbols[y][x]) {
+                    ctx.fillStyle = '#2c3e50';
+                    ctx.font = 'bold 16px Inter, sans-serif';
+                    ctx.fillText(symbols[y][x], sx + cellSize / 2, sy + cellSize / 2);
+                }
+                // Draw hit/miss markers
+                if (cell.hit) {
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 4;
+                    if (cell.hasShip) {
+                        const margin = 12;
+                        ctx.beginPath();
+                        ctx.moveTo(sx + margin, sy + margin);
+                        ctx.lineTo(sx + cellSize - margin, sy + cellSize - margin);
+                        ctx.moveTo(sx + cellSize - margin, sy + margin);
+                        ctx.lineTo(sx + margin, sy + cellSize - margin);
+                        ctx.stroke();
+                    } else {
+                        ctx.beginPath();
+                        ctx.arc(sx + cellSize / 2, sy + cellSize / 2, cellSize * 0.3, 0, 2 * Math.PI);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+    }
+    // Draw group labels (G#) above a board
+    function drawGroupLabels(ctx, offsetX, offsetY) {
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 18px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        for (let x = 0; x < cols; x++) {
+            const group = colToGroupMap[x];
+            ctx.fillText(`G${group}`, offsetX + x * cellSize + cellSize / 2, offsetY - 10);
+        }
+    }
+    // Draw period labels (P#) to the left of boards
+    function drawPeriodLabels(ctx, offsetX, offsetY) {
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 18px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        for (let y = 0; y < rows; y++) {
+            ctx.fillText(`P${y + 1}`, offsetX + labelSpace / 2, offsetY + y * cellSize + cellSize / 2);
+        }
+    }
+    // Handle canvas clicks for placing ships or attacking
+    function onCanvasClick(event) {
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        if (gamePhase === 'placing') {
+            // Click inside player board?
+            const boardX = labelSpace;
+            const boardY = boardTopOffset;
+            if (x > boardX && x < boardX + cols * cellSize && y > boardY && y < boardY + rows * cellSize) {
+                const gx = Math.floor((x - boardX) / cellSize);
+                const gy = Math.floor((y - boardY) / cellSize);
+                if (symbols[gy][gx]) {
+                    handleShipPlacement(gx, gy);
+                } else {
+                    displayError('Cannot place ship on unavailable cell.');
+                }
+            }
+        } else if (gamePhase === 'playing' && !waitingForAI) {
+            // Player can click enemy board to attack
+            const enemyBoardX = labelSpace + cols * cellSize + boardGap;
+            const enemyBoardY = boardTopOffset;
+            if (x > enemyBoardX && x < enemyBoardX + cols * cellSize && y > enemyBoardY && y < enemyBoardY + rows * cellSize) {
+                const gx = Math.floor((x - enemyBoardX) / cellSize);
+                const gy = Math.floor((y - enemyBoardY) / cellSize);
+                if (symbols[gy][gx] && !enemyBoard[gy][gx].hit) {
+                    performAttack(gx, gy, enemyBoard, 'player');
+                }
+            }
+        }
+    }
+    // Handle ship placement on player board
+    function handleShipPlacement(x, y) {
+        const currentShip = playerShipsConfig[currentShipIndex];
+        // Already part of placed ship?
+        if (playerBoard[y][x].hasShip && playerBoard[y][x].shipId) {
+            displayError('A ship is already placed here!');
+            return;
+        }
+        // Already selected? ignore
+        if (currentShipCells.some(c => c.x === x && c.y === y)) return;
+        playerBoard[y][x].hasShip = true;
+        playerBoard[y][x].shipId = currentShip.id;
+        currentShipCells.push({ x, y });
+        if (currentShipCells.length === currentShip.size) {
+            // Validate contiguous
+            if (!isContiguous(currentShipCells)) {
+                currentShipCells.forEach(cell => {
+                    playerBoard[cell.y][cell.x].hasShip = false;
+                    playerBoard[cell.y][cell.x].shipId = null;
+                });
+                currentShipCells = [];
+                displayError('Ships must occupy contiguous cells (horizontal or vertical).');
+                return;
+            }
+            // Finalise placement
+            updateShipStatus();
+            currentShipIndex++;
+            currentShipCells = [];
+            if (currentShipIndex === playerShipsConfig.length) {
+                gamePhase = 'ready';
+                updateInstructions('✅ All ships placed! Press “Start Battle!” to begin.');
+                startButton.disabled = false;
+                startButton.style.display = 'block';
+                clearButton.style.display = 'none';
+            } else {
+                updateInstructions(`🚢 Place your ${playerShipsConfig[currentShipIndex].size}-cell ${playerShipsConfig[currentShipIndex].name}.`);
+            }
+        } else {
+            const remaining = currentShip.size - currentShipCells.length;
+            updateInstructions(`Add ${remaining} more cell${remaining>1?'s':''} to complete your ${currentShip.size}-cell ${currentShip.name}.`);
+        }
+    }
+    // Check contiguity of placed ship cells
+    function isContiguous(cells) {
+        if (cells.length <= 1) return true;
+        cells.sort((a,b) => (a.x - b.x) || (a.y - b.y));
+        // Horizontal
+        let horizontal = true;
+        for (let i = 1; i < cells.length; i++) {
+            if (cells[i].y !== cells[0].y || Math.abs(cells[i].x - cells[i-1].x) !== 1) {
+                horizontal = false; break;
+            }
+        }
+        if (horizontal) return true;
+        // Vertical
+        let vertical = true;
+        for (let i = 1; i < cells.length; i++) {
+            if (cells[i].x !== cells[0].x || Math.abs(cells[i].y - cells[i-1].y) !== 1) {
+                vertical = false; break;
+            }
+        }
+        return vertical;
+    }
+    // Update fleet status panel
+    function updateShipStatus() {
+        playerShipsConfig.forEach(ship => {
+            const el = document.getElementById(`${ship.id}-status`);
+            const placed = playerBoard.flat().some(cell => cell.shipId === ship.id);
+            if (placed) {
+                el.textContent = `${ship.name} (${ship.size}): ✅ Placed`;
+                el.classList.add('ship-placed');
+            } else {
+                const idx = playerShipsConfig.findIndex(s => s.id === ship.id);
+                if (gamePhase === 'placing' && idx === currentShipIndex) {
+                    el.textContent = `${ship.name} (${ship.size}): ⏳ Placing`;
+                } else {
+                    el.textContent = `${ship.name} (${ship.size}): ⏳ Waiting`;
+                }
+                el.classList.remove('ship-placed');
+            }
+        });
+    }
+    // Start game after ships are placed
+    function startGame() {
+        if (gamePhase !== 'ready') return;
+        gamePhase = 'playing';
+        startButton.style.display = 'none';
+        clearButton.style.display = 'none';
+        document.getElementById('attack-input-container').style.display = 'flex';
+        updateInstructions('🎯 Battle begins! Enter coordinates (G# P#) or click enemy board to attack.');
+    }
+    // Reset entire game
+    function resetGame() {
+        currentShipIndex = 0;
+        currentShipCells = [];
+        gamePhase = 'placing';
+        playerHits = 0;
+        enemyHits = 0;
+        waitingForAI = false;
+        aiState = 'hunting';
+        aiHitQueue = [];
+        initBoards();
+        updateInstructions('🚢 Place your 3 ships: one 2-cell destroyer and two 3-cell cruisers (ships must be contiguous!)');
+        document.getElementById('player-hits').textContent = '0';
+        document.getElementById('enemy-hits').textContent = '0';
+        // Reset status displays
+        document.getElementById('destroyer-status').textContent = 'Destroyer (2): ⏳ Placing';
+        document.getElementById('destroyer-status').classList.remove('ship-placed');
+        document.getElementById('cruiser1-status').textContent = 'Cruiser (3): ⏳ Waiting';
+        document.getElementById('cruiser1-status').classList.remove('ship-placed');
+        document.getElementById('cruiser2-status').textContent = 'Cruiser (3): ⏳ Waiting';
+        document.getElementById('cruiser2-status').classList.remove('ship-placed');
+        document.getElementById('attack-input-container').style.display = 'none';
+        startButton.style.display = 'block';
+        startButton.disabled = true;
+        clearButton.style.display = 'block';
+    }
+    // Clear current ship placement
+    function clearCurrentShip() {
+        if (gamePhase !== 'placing' || currentShipCells.length === 0) {
+            displayError('Can only clear while placing a ship.');
+            return;
+        }
+        currentShipCells.forEach(cell => {
+            playerBoard[cell.y][cell.x].hasShip = false;
+            playerBoard[cell.y][cell.x].shipId = null;
+        });
+        currentShipCells = [];
+        updateInstructions(`Cleared. Place your ${playerShipsConfig[currentShipIndex].size}-cell ${playerShipsConfig[currentShipIndex].name} again.`);
+    }
+    // Process player's attack from input field
+    function processPlayerAttackFromInput() {
+        if (gamePhase !== 'playing' || waitingForAI) return;
+        const str = inputBox.value.trim().toUpperCase();
+        inputBox.value = '';
+        const coords = parseCoordinates(str);
+        if (!coords) {
+            displayError('Invalid input. Use format G# P# (e.g., G3 P2).');
+            return;
+        }
+        const { x, y } = coords;
+        if (enemyBoard[y][x].hit) {
+            displayError('You already attacked those coordinates!');
+            return;
+        }
+        performAttack(x, y, enemyBoard, 'player');
+    }
+    // Parse string coordinates into grid coordinates
+    function parseCoordinates(str) {
+        const match = str.match(/^G(\d+)\s*P(\d+)$/);
+        if (!match) return null;
+        const group = parseInt(match[1], 10);
+        const period = parseInt(match[2], 10);
+        if (!groupToColMap.hasOwnProperty(group)) return null;
+        const x = groupToColMap[group];
+        if (period < 1 || period > rows) return null;
+        const y = period - 1;
+        if (!symbols[y][x]) return null;
+        return { x, y };
+    }
+    // Perform an attack (player or AI)
+    function performAttack(x, y, board, attacker) {
+        const cell = board[y][x];
+        cell.hit = true;
+        const coordString = formatCoordinates(x, y);
+        if (cell.hasShip) {
+            if (attacker === 'player') {
+                playerHits++;
+                document.getElementById('player-hits').textContent = playerHits;
+                updateInstructions(`🎯 HIT! You struck the enemy at ${coordString}!`);
+            } else {
+                enemyHits++;
+                document.getElementById('enemy-hits').textContent = enemyHits;
+                updateInstructions(`💥 Enemy hit your ship at ${coordString}!`);
+            }
+        } else {
+            if (attacker === 'player') {
+                updateInstructions(`💧 Miss at ${coordString}. Enemy's turn...`);
+            } else {
+                updateInstructions(`💨 Enemy missed at ${coordString}. Your turn!`);
+            }
+        }
+        // Check game over
+        if (checkWin(board)) {
+            if (attacker === 'player') {
+                updateInstructions('🏆 You Win! All enemy ships sunk!');
+            } else {
+                updateInstructions('☠️ Game Over! All your ships sunk!');
+            }
+            gamePhase = 'game_over';
+            document.getElementById('attack-input-container').style.display = 'none';
+            startButton.style.display = 'none';
+            clearButton.style.display = 'none';
+            return;
+        }
+        // If player's attack, queue AI attack
+        if (attacker === 'player') {
+            waitingForAI = true;
+            setTimeout(aiAttack, 1200);
+        } else {
+            waitingForAI = false;
+        }
+    }
+    // Format grid coordinates into string
+    function formatCoordinates(x, y) {
+        return `G${colToGroupMap[x]} P${y + 1}`;
+    }
+    // Check if all ships on board are sunk
+    function checkWin(board) {
+        for (let y = 0; y < rows; y++) {
+            for (let x = 0; x < cols; x++) {
+                if (board[y][x].hasShip && !board[y][x].hit) return false;
+            }
+        }
+        return true;
+    }
+    // AI attack logic
+    function aiAttack() {
+        if (gamePhase !== 'playing') return;
+        let target;
+        if (aiState === 'targeting' && aiHitQueue.length > 0) {
+            target = aiHitQueue.pop();
+        } else {
+            // Build list of valid cells
+            const candidates = [];
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    if (isValidAICell(x, y)) {
+                        candidates.push({x, y});
+                    }
+                }
+            }
+            if (candidates.length === 0) return;
+            const parity = candidates.filter(c => ((c.x + c.y) % 2) === 0);
+            const pool = parity.length > 0 ? parity : candidates;
+            target = pool[Math.floor(Math.random() * pool.length)];
+        }
+        const { x, y } = target;
+        const cell = playerBoard[y][x];
+        cell.hit = true;
+        const coordString = formatCoordinates(x, y);
+        if (cell.hasShip) {
+            enemyHits++;
+            document.getElementById('enemy-hits').textContent = enemyHits;
+            updateInstructions(`💥 Enemy hit your ship at ${coordString}!`);
+            if (aiState === 'hunting') aiState = 'targeting';
+            // Add adjacent cells to queue
+            aiHitQueue.push(...getAdjacentTargets(x, y));
+        } else {
+            updateInstructions(`💨 Enemy missed at ${coordString}. Your turn!`);
+            if (aiState === 'targeting' && aiHitQueue.length === 0) aiState = 'hunting';
+        }
+        if (checkWin(playerBoard)) {
+            updateInstructions('☠️ Game Over! All your ships sunk!');
+            gamePhase = 'game_over';
+            document.getElementById('attack-input-container').style.display = 'none';
+            startButton.style.display = 'none';
+            clearButton.style.display = 'none';
+            return;
+        }
+        waitingForAI = false;
+    }
+    // Check if AI can attack cell
+    function isValidAICell(x, y) {
+        if (x < 0 || x >= cols || y < 0 || y >= rows) return false;
+        if (playerBoard[y][x].hit) return false;
+        return !!symbols[y][x];
+    }
+    // Get adjacent targets around a hit for AI
+    function getAdjacentTargets(x, y) {
+        const adj = [];
+        const dirs = [[0,-1],[1,0],[0,1],[-1,0]];
+        dirs.forEach(([dx, dy]) => {
+            const nx = x + dx;
+            const ny = y + dy;
+            if (isValidAICell(nx, ny)) {
+                adj.push({x:nx, y:ny});
+            }
+        });
+        return adj;
+    }
+    // Update instruction panel text
+    function updateInstructions(text) {
+        document.getElementById('main-instructions').innerHTML = text;
+    }
+    // Display temporary error popup
+    function displayError(message) {
+        const existing = document.querySelector('.error-popup');
+        if (existing) existing.remove();
+        const div = document.createElement('div');
+        div.className = 'error-popup';
+        div.textContent = message;
+        div.style.position = 'fixed';
+        div.style.top = '50%';
+        div.style.left = '50%';
+        div.style.transform = 'translate(-50%, -50%)';
+        div.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
+        div.style.color = '#fff';
+        div.style.padding = '15px 25px';
+        div.style.borderRadius = '12px';
+        div.style.fontSize = '1.1em';
+        div.style.fontWeight = '600';
+        div.style.boxShadow = '0 8px 25px rgba(231, 76, 60, 0.3)';
+        div.style.zIndex = '1001';
+        div.style.animation = 'errorShake 0.5s ease-in-out';
+        document.body.appendChild(div);
+        setTimeout(() => { if (div.parentNode) div.parentNode.removeChild(div); }, 3000);
+    }
+    // CSS keyframes inserted via JS for error shake
+    const styleSheet = document.createElement('style');
+    styleSheet.textContent = '@keyframes errorShake {0%,100% {transform: translate(-50%, -50%);}25% {transform: translate(-55%, -50%);}75% {transform: translate(-45%, -50%);}}';
+    document.head.appendChild(styleSheet);
+    </script>
+</body>
+</html>
